@@ -1,18 +1,17 @@
-package ru.practicum.shareit.item.model;
+package ru.practicum.shareit.request.model;
 
 import lombok.AccessLevel;
 import lombok.Data;
 import lombok.experimental.FieldDefaults;
-import ru.practicum.shareit.request.model.ItemRequest;
 import ru.practicum.shareit.user.model.User;
+
+import java.time.LocalDateTime;
 
 @Data
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class Item {
+public class ItemRequest {
     long id;
-    String name;
     String description;
-    boolean available;
-    User owner;
-    ItemRequest request;
+    User requestor;
+    LocalDateTime created;
 }

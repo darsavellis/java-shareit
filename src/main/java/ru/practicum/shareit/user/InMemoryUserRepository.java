@@ -1,4 +1,4 @@
-package ru.practicum.shareit.user.dal.impl;
+package ru.practicum.shareit.user;
 
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -6,7 +6,6 @@ import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Component;
 import ru.practicum.shareit.exceptions.DuplicatedException;
 import ru.practicum.shareit.exceptions.NotFoundException;
-import ru.practicum.shareit.user.dal.UserRepository;
 import ru.practicum.shareit.user.model.User;
 
 import java.util.*;
