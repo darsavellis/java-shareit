@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 @Data
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class ItemRequest {
-    long id;
+    Long id;
     String description;
     User requestor;
     LocalDateTime created;

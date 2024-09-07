@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 @Data
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class Booking {
-    long id;
+    Long id;
     LocalDateTime start;
     LocalDateTime end;
     Item item;

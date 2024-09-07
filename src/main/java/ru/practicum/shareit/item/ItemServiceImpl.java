@@ -24,8 +24,7 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     public List<ItemDto> getItems(long userId) {
-        return itemRepository.findAll().stream().filter(item -> item.getOwner().getId() == userId)
-            .map(ItemMapper::mapToItemDto).toList();
+        return itemRepository.findByUserId(userId).stream().map(ItemMapper::mapToItemDto).toList();
     }
 
     @Override
@@ -50,20 +49,20 @@ public class ItemServiceImpl implements ItemService {
         Item oldItem = itemRepository.findById(id)
             .orElseThrow(() -> new NotFoundException(String.format("Item ID=%s not found", id)));
 
-        if (oldItem.getOwner().getId() == userId) {
-            if (Objects.nonNull(itemDto.getName())) {
-                oldItem.setName(itemDto.getName());
-            }
-            if (Objects.nonNull(itemDto.getDescription())) {
-                oldItem.setDescription(itemDto.getDescription());
-            }
-            if (Objects.nonNull(itemDto.getAvailable())) {
-                oldItem.setAvailable(itemDto.getAvailable());
-            }
-        } else {
+        if (oldItem.getOwner().getId() != userId) {
             throw new PermissionException("Access denied");
         }
-        return ItemMapper.mapToItemDto(oldItem);
+        if (Objects.nonNull(itemDto.getName())) {
+            oldItem.setName(itemDto.getName());
+        }
+        if (Objects.nonNull(itemDto.getDescription())) {
+            oldItem.setDescription(itemDto.getDescription());
+        }
+        if (Objects.nonNull(itemDto.getAvailable())) {
+            oldItem.setAvailable(itemDto.getAvailable());
+        }
+
+        return ItemMapper.mapToItemDto(itemRepository.update(oldItem));
     }
 
     @Override
@@ -74,10 +73,6 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     public List<ItemDto> searchItems(long userId, String text) {
-        return itemRepository.findAll().stream()
-            .filter(Item::isAvailable)
-            .filter(item -> item.getName().toLowerCase().contains(text.toLowerCase()))
-            .filter(item -> item.getOwner().getId() == userId)
-            .map(ItemMapper::mapToItemDto).toList();
+        return itemRepository.searchItems(userId, text).stream().map(ItemMapper::mapToItemDto).toList();
     }
 }

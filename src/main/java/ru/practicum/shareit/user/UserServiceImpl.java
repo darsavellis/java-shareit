@@ -10,6 +10,7 @@ import ru.practicum.shareit.user.mappers.UserMapper;
 import ru.practicum.shareit.user.model.User;
 
 import java.util.List;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -32,13 +33,23 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserDto createUser(UserDto userDto) {
         User user = UserMapper.mapToUser(userDto);
+        Objects.requireNonNull(user.getEmail());
         return UserMapper.mapToUserDto(userRepository.save(user));
     }
 
     @Override
     public UserDto updateUser(long id, UserDto userDto) {
         User user = UserMapper.mapToUser(userDto);
-        return UserMapper.mapToUserDto(userRepository.update(id, user));
+        User oldUser = UserMapper.mapToUser(getUserById(id));
+
+        if (Objects.nonNull(user.getName())) {
+            oldUser.setName(user.getName());
+        }
+        if (Objects.nonNull(user.getEmail())) {
+            oldUser.setEmail(user.getEmail());
+        }
+
+        return UserMapper.mapToUserDto(userRepository.update(id, oldUser));
     }
 
     @Override

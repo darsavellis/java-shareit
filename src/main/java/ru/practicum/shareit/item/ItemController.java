@@ -1,6 +1,5 @@
 package ru.practicum.shareit.item;
 
-import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -30,7 +29,7 @@ public class ItemController {
     }
 
     @PatchMapping("/{id}")
-    public ItemDto updateItem(@PathVariable long id, @RequestHeader("X-Sharer-User-Id") @NotNull Long userId,
+    public ItemDto updateItem(@PathVariable long id, @RequestHeader("X-Sharer-User-Id") long userId,
                               @RequestBody ItemDto itemDto) {
         return itemService.updateItem(id, userId, itemDto);
     }

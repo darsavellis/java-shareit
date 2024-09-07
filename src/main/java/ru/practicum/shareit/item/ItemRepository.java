@@ -6,8 +6,6 @@ import java.util.List;
 import java.util.Optional;
 
 public interface ItemRepository {
-    List<Item> findAll();
-
     Optional<Item> findById(long id);
 
     Item save(Item item);
@@ -15,4 +13,8 @@ public interface ItemRepository {
     Item update(Item item);
 
     Item delete(long id);
+
+    List<Item> findByUserId(long userId);
+
+    List<Item> searchItems(long userId, String text);
 }
