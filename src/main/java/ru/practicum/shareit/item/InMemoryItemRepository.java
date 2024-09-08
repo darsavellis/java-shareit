@@ -10,6 +10,7 @@ import java.util.*;
 @Component
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class InMemoryItemRepository implements ItemRepository {
+    static long currentMaxId;
     final Map<Long, Item> items = new HashMap<>();
     final Map<Long, Set<Item>> itemsByUser = new HashMap<>();
 
@@ -58,7 +59,6 @@ public class InMemoryItemRepository implements ItemRepository {
     }
 
     long nextId() {
-        long currentMaxId = items.keySet().stream().max(Long::compareTo).orElse(0L);
         return ++currentMaxId;
     }
 }

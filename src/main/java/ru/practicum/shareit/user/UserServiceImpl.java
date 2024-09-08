@@ -33,14 +33,14 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserDto createUser(UserDto userDto) {
         User user = UserMapper.mapToUser(userDto);
-        Objects.requireNonNull(user.getEmail());
+
         return UserMapper.mapToUserDto(userRepository.save(user));
     }
 
     @Override
-    public UserDto updateUser(long id, UserDto userDto) {
+    public UserDto updateUser(UserDto userDto) {
         User user = UserMapper.mapToUser(userDto);
-        User oldUser = UserMapper.mapToUser(getUserById(id));
+        User oldUser = UserMapper.mapToUser(getUserById(userDto.getId()));
 
         if (Objects.nonNull(user.getName())) {
             oldUser.setName(user.getName());
@@ -49,7 +49,7 @@ public class UserServiceImpl implements UserService {
             oldUser.setEmail(user.getEmail());
         }
 
-        return UserMapper.mapToUserDto(userRepository.update(id, oldUser));
+        return UserMapper.mapToUserDto(userRepository.update(oldUser));
     }
 
     @Override

@@ -7,12 +7,16 @@ import org.springframework.stereotype.Component;
 import ru.practicum.shareit.exceptions.DuplicatedException;
 import ru.practicum.shareit.user.model.User;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 @Component
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class InMemoryUserRepository implements UserRepository {
+    static long currentMaxId;
     final Map<Long, User> users = new HashMap<>();
     final Map<String, User> emails = new HashMap<>();
 
@@ -36,13 +40,11 @@ public class InMemoryUserRepository implements UserRepository {
     }
 
     @Override
-    public User update(long id, User user) {
-        User oldUser = users.get(id);
-        user.setId(id
-        );
-        checkIfEmailUnique(user);
+    public User update(User user) {
+        User oldUser = users.get(user.getId());
         oldUser.setName(user.getName());
         oldUser.setEmail(user.getEmail());
+        checkIfEmailUnique(oldUser);
         emails.put(user.getEmail(), user);
         return oldUser;
     }
@@ -53,13 +55,12 @@ public class InMemoryUserRepository implements UserRepository {
     }
 
     long nextId() {
-        long currentMaxId = users.values().stream().mapToLong(User::getId).max().orElse(0);
         return ++currentMaxId;
     }
 
     void checkIfEmailUnique(User user) {
         User userWithSameEmail = emails.get(user.getEmail());
-        if (Objects.nonNull(userWithSameEmail) && !Objects.equals(userWithSameEmail.getId(), user.getId())) {
+        if (userWithSameEmail != null && userWithSameEmail != user) {
             throw new DuplicatedException(String.format("Email=%s is already exists", user.getEmail()));
         }
     }

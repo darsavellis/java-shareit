@@ -14,21 +14,21 @@ public class ErrorHandler {
     @ExceptionHandler
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ErrorResponse validationException(ValidationException exception) {
-        log.info(exception.getMessage(), exception);
+        log.info(exception.getMessage());
         return new ErrorResponse("error", exception.getMessage());
     }
 
     @ExceptionHandler
     @ResponseStatus(HttpStatus.CONFLICT)
     public ErrorResponse duplicateException(DuplicatedException exception) {
-        log.warn(exception.getMessage(), exception);
+        log.warn(exception.getMessage());
         return new ErrorResponse("error", exception.getMessage());
     }
 
     @ExceptionHandler
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public ErrorResponse notFoundException(NotFoundException exception) {
-        log.info(exception.getMessage(), exception);
+        log.info(exception.getMessage());
         return new ErrorResponse("error", exception.getMessage());
     }
 
