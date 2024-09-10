@@ -41,12 +41,8 @@ public class InMemoryUserRepository implements UserRepository {
 
     @Override
     public User update(User user) {
-        User oldUser = users.get(user.getId());
-        oldUser.setName(user.getName());
-        oldUser.setEmail(user.getEmail());
-        checkIfEmailUnique(oldUser);
-        emails.put(user.getEmail(), user);
-        return oldUser;
+        checkIfEmailUnique(user);
+        return user;
     }
 
     @Override

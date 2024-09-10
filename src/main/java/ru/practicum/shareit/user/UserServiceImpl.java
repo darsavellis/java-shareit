@@ -10,7 +10,6 @@ import ru.practicum.shareit.user.mappers.UserMapper;
 import ru.practicum.shareit.user.model.User;
 
 import java.util.List;
-import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -39,17 +38,20 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserDto updateUser(UserDto userDto) {
-        User user = UserMapper.mapToUser(userDto);
-        User oldUser = UserMapper.mapToUser(getUserById(userDto.getId()));
+        userRepository.update(UserMapper.mapToUser(userDto));
+        final User oldUser = userRepository.findById(userDto.getId())
+            .orElseThrow(() -> new NotFoundException(String.format("User ID=%s not found", userDto.getId())));
+        final String name = userDto.getName();
+        final String email = userDto.getEmail();
 
-        if (Objects.nonNull(user.getName())) {
-            oldUser.setName(user.getName());
+        if (name != null && !name.isBlank()) {
+            oldUser.setName(name);
         }
-        if (Objects.nonNull(user.getEmail())) {
-            oldUser.setEmail(user.getEmail());
+        if (email != null && !email.isBlank()) {
+            oldUser.setEmail(email);
         }
 
-        return UserMapper.mapToUserDto(userRepository.update(oldUser));
+        return UserMapper.mapToUserDto(oldUser);
     }
 
     @Override

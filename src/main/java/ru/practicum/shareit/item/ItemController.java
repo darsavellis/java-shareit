@@ -11,10 +11,11 @@ import java.util.List;
 @RequiredArgsConstructor
 @RequestMapping("/items")
 public class ItemController {
+    private static final String USER_ID_HEADER = "X-Sharer-User-Id";
     final ItemService itemService;
 
     @GetMapping
-    public List<ItemDto> getItems(@RequestHeader("X-Sharer-User-Id") long userId) {
+    public List<ItemDto> getItems(@RequestHeader(USER_ID_HEADER) long userId) {
         return itemService.getItems(userId);
     }
 
@@ -24,12 +25,12 @@ public class ItemController {
     }
 
     @PostMapping
-    public ItemDto createItem(@RequestHeader("X-Sharer-User-Id") long userId, @Validated @RequestBody ItemDto itemDto) {
+    public ItemDto createItem(@RequestHeader(USER_ID_HEADER) long userId, @Validated @RequestBody ItemDto itemDto) {
         return itemService.createItem(userId, itemDto);
     }
 
     @PatchMapping("/{id}")
-    public ItemDto updateItem(@PathVariable long id, @RequestHeader("X-Sharer-User-Id") long userId,
+    public ItemDto updateItem(@PathVariable long id, @RequestHeader(USER_ID_HEADER) long userId,
                               @RequestBody ItemDto itemDto) {
         return itemService.updateItem(id, userId, itemDto);
     }
@@ -40,7 +41,7 @@ public class ItemController {
     }
 
     @GetMapping("/search")
-    public List<ItemDto> search(@RequestHeader("X-Sharer-User-Id") long userId, @RequestParam String text) {
+    public List<ItemDto> search(@RequestHeader(USER_ID_HEADER) long userId, @RequestParam String text) {
         return itemService.searchItems(userId, text);
     }
 }

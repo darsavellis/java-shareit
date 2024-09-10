@@ -12,6 +12,7 @@ import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.user.UserRepository;
 import ru.practicum.shareit.user.model.User;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -46,23 +47,28 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     public ItemDto updateItem(long id, long userId, ItemDto itemDto) {
-        Item oldItem = itemRepository.findById(id)
+        final Item oldItem = itemRepository.findById(id)
             .orElseThrow(() -> new NotFoundException(String.format("Item ID=%s not found", id)));
+        final String name = itemDto.getName();
+        final String description = itemDto.getDescription();
+        final User owner = userRepository.findById(userId)
+            .orElseThrow(() -> new NotFoundException(String.format("User ID=%s not found", userId)));
 
         if (oldItem.getOwner().getId() != userId) {
             throw new PermissionException("Access denied");
         }
-        if (Objects.nonNull(itemDto.getName())) {
+        if (name != null && !name.isBlank()) {
             oldItem.setName(itemDto.getName());
         }
-        if (Objects.nonNull(itemDto.getDescription())) {
+        if (description != null && !description.isBlank()) {
             oldItem.setDescription(itemDto.getDescription());
         }
         if (Objects.nonNull(itemDto.getAvailable())) {
             oldItem.setAvailable(itemDto.getAvailable());
         }
 
-        return ItemMapper.mapToItemDto(itemRepository.update(oldItem));
+        oldItem.setOwner(owner);
+        return ItemMapper.mapToItemDto(oldItem);
     }
 
     @Override
@@ -73,6 +79,9 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     public List<ItemDto> searchItems(long userId, String text) {
+        if (text.isBlank()) {
+            return Collections.emptyList();
+        }
         return itemRepository.searchItems(userId, text).stream().map(ItemMapper::mapToItemDto).toList();
     }
 }

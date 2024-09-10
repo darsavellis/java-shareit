@@ -10,8 +10,6 @@ public interface ItemRepository {
 
     Item save(Item item);
 
-    Item update(Item item);
-
     Item delete(long id);
 
     List<Item> findByUserId(long userId);

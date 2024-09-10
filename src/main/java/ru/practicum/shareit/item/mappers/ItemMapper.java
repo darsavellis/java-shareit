@@ -6,7 +6,7 @@ import ru.practicum.shareit.item.model.Item;
 
 @UtilityClass
 public class ItemMapper {
-    public static Item mapToItem(ItemDto itemDto) {
+    public Item mapToItem(ItemDto itemDto) {
         Item item = new Item();
         item.setId(itemDto.getId());
         item.setName(itemDto.getName());
@@ -15,7 +15,7 @@ public class ItemMapper {
         return item;
     }
 
-    public static ItemDto mapToItemDto(Item item) {
+    public ItemDto mapToItemDto(Item item) {
         ItemDto itemDto = new ItemDto();
         itemDto.setId(item.getId());
         itemDto.setName(item.getName());
