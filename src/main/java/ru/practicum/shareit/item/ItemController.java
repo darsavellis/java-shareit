@@ -5,8 +5,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import ru.practicum.shareit.item.dto.CommentItemDto;
 import ru.practicum.shareit.item.dto.ItemDto;
+import ru.practicum.shareit.item.dto.ItemDtoWithComments;
 import ru.practicum.shareit.item.dto.RequestCommentDto;
 import ru.practicum.shareit.item.dto.ResponseCommentDto;
 
@@ -21,12 +21,12 @@ public class ItemController {
     final ItemService itemService;
 
     @GetMapping
-    public List<CommentItemDto> getItems(@RequestHeader(userIdHeader) long userId) {
+    public List<ItemDtoWithComments> getItems(@RequestHeader(userIdHeader) long userId) {
         return itemService.getItems(userId);
     }
 
     @GetMapping("/{itemId}")
-    public CommentItemDto getItemById(@RequestHeader(userIdHeader) long userId, @PathVariable long itemId) {
+    public ItemDtoWithComments getItemById(@RequestHeader(userIdHeader) long userId, @PathVariable long itemId) {
         return itemService.getItemById(userId, itemId);
     }
 

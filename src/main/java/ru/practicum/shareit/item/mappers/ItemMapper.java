@@ -1,8 +1,8 @@
 package ru.practicum.shareit.item.mappers;
 
 import lombok.experimental.UtilityClass;
-import ru.practicum.shareit.item.dto.CommentItemDto;
 import ru.practicum.shareit.item.dto.ItemDto;
+import ru.practicum.shareit.item.dto.ItemDtoWithComments;
 import ru.practicum.shareit.item.dto.RequestCommentDto;
 import ru.practicum.shareit.item.dto.ResponseCommentDto;
 import ru.practicum.shareit.item.model.Comment;
@@ -30,13 +30,13 @@ public class ItemMapper {
     }
 
 
-    public CommentItemDto mapToCommentItemDto(Item item) {
-        CommentItemDto commentItemDto = new CommentItemDto();
-        commentItemDto.setId(item.getId());
-        commentItemDto.setName(item.getName());
-        commentItemDto.setDescription(item.getDescription());
-        commentItemDto.setAvailable(item.isAvailable());
-        return commentItemDto;
+    public ItemDtoWithComments mapToItemDtoWithComments(Item item) {
+        ItemDtoWithComments itemDtoWithComments = new ItemDtoWithComments();
+        itemDtoWithComments.setId(item.getId());
+        itemDtoWithComments.setName(item.getName());
+        itemDtoWithComments.setDescription(item.getDescription());
+        itemDtoWithComments.setAvailable(item.isAvailable());
+        return itemDtoWithComments;
     }
 
     public Comment mapToComment(RequestCommentDto requestCommentDto, User user, Item item) {

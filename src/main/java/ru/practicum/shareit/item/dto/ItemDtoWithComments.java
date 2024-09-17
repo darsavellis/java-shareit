@@ -12,7 +12,7 @@ import java.util.List;
 
 @Data
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class CommentItemDto {
+public class ItemDtoWithComments {
     long id;
     @NotBlank
     String name;

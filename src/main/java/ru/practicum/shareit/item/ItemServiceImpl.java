@@ -5,12 +5,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Service;
 import ru.practicum.shareit.booking.BookingRepository;
-import ru.practicum.shareit.booking.model.Booking;
+import ru.practicum.shareit.booking.dto.ResponseBookingDto;
+import ru.practicum.shareit.booking.mappers.BookingMapper;
 import ru.practicum.shareit.exceptions.NotFoundException;
 import ru.practicum.shareit.exceptions.PermissionException;
-import ru.practicum.shareit.exceptions.ValidationException;
-import ru.practicum.shareit.item.dto.CommentItemDto;
 import ru.practicum.shareit.item.dto.ItemDto;
+import ru.practicum.shareit.item.dto.ItemDtoWithComments;
 import ru.practicum.shareit.item.dto.RequestCommentDto;
 import ru.practicum.shareit.item.dto.ResponseCommentDto;
 import ru.practicum.shareit.item.mappers.ItemMapper;
@@ -23,7 +23,6 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 @Service
 @RequiredArgsConstructor
@@ -35,18 +34,29 @@ public class ItemServiceImpl implements ItemService {
     final CommentRepository commentRepository;
 
     @Override
-    public List<CommentItemDto> getItems(long userId) {
-        Map<Long, CommentItemDto> itemsByOwner = itemRepository.findByOwnerId(userId).stream()
-            .map(ItemMapper::mapToCommentItemDto)
-            .collect(Collectors.toMap(CommentItemDto::getId, Function.identity()));
+    public List<ItemDtoWithComments> getItems(long userId) {
+        Map<Long, List<ResponseCommentDto>> commentDtoMap = commentRepository.findAll()
+            .stream().map(ItemMapper::mapToCommentDto).collect(Collectors.groupingBy(ResponseCommentDto::getId));
 
-        commentRepository.findAllByItemIdIn(itemsByOwner.keySet().stream().toList()).forEach(comment -> {
-            itemsByOwner.get(comment.getItem().getId()).getComments().add(ItemMapper.mapToCommentDto(comment));
-        });
+        Map<Long, List<ResponseBookingDto>> bookingDtoMap = bookingRepository.findAllByItemOwnerId(userId)
+            .stream().map(BookingMapper::mapToResponseBookingDto)
+            .collect(Collectors.groupingBy(responseBookingDto -> responseBookingDto.getItem().getId()));
 
-        bookingRepository.findAllByItemOwnerId(userId).forEach(booking -> {
-            addLastAndNextBookings(booking, itemsByOwner);
-        });
+        Map<Long, ItemDtoWithComments> itemsByOwner = itemRepository.findByOwnerId(userId).stream()
+            .map(item -> {
+                ItemDtoWithComments itemDtoWithComments = ItemMapper.mapToItemDtoWithComments(item);
+                itemDtoWithComments.setComments(commentDtoMap.get(item.getId()));
+
+                LocalDateTime nextBookingDto = bookingDtoMap.getOrDefault(item.getId(), new LinkedList<>())
+                    .stream().map(ResponseBookingDto::getEnd).max(LocalDateTime::compareTo).orElse(null);
+                LocalDateTime lastBookingDto = bookingDtoMap.getOrDefault(item.getId(), new LinkedList<>())
+                    .stream().map(ResponseBookingDto::getStart).min(LocalDateTime::compareTo).orElse(null);
+
+                itemDtoWithComments.setNextBooking(nextBookingDto);
+                itemDtoWithComments.setLastBooking(lastBookingDto);
+
+                return itemDtoWithComments;
+            }).collect(Collectors.toMap(ItemDtoWithComments::getId, Function.identity()));
 
         return itemsByOwner.values().stream().toList();
     }
@@ -61,19 +71,26 @@ public class ItemServiceImpl implements ItemService {
     }
 
     @Override
-    public CommentItemDto getItemById(long userId, long itemId) {
+    public ItemDtoWithComments getItemById(long userId, long itemId) {
         Item item = itemRepository.findById(itemId)
             .orElseThrow(() -> new NotFoundException(String.format("Item ID=%s not found", itemId)));
-        CommentItemDto commentItemDto = ItemMapper.mapToCommentItemDto(item);
-        commentItemDto.getComments()
-            .addAll(commentRepository.findAllByItemId(itemId).stream().map(ItemMapper::mapToCommentDto).toList());
+        List<ResponseCommentDto> commentDtos = commentRepository.findAllByItemId(itemId)
+            .stream().map(ItemMapper::mapToCommentDto).toList();
+        List<ResponseBookingDto> bookingDtos = bookingRepository.findAllByItemId(itemId)
+            .stream().map(BookingMapper::mapToResponseBookingDto).toList();
+        ItemDtoWithComments itemDtoWithComments = ItemMapper.mapToItemDtoWithComments(item);
+        itemDtoWithComments.setComments(commentDtos);
 
         if (item.getOwner().getId().equals(userId)) {
-            bookingRepository.findAllByItemId(userId).forEach(booking -> {
-                addLastAndNextBookings(booking, new HashMap<>(Map.of(itemId, commentItemDto)));
-            });
+            LocalDateTime nextBookingDto = bookingDtos
+                .stream().map(ResponseBookingDto::getEnd).max(LocalDateTime::compareTo).orElse(null);
+            LocalDateTime lastBookingDto = bookingDtos
+                .stream().map(ResponseBookingDto::getStart).min(LocalDateTime::compareTo).orElse(null);
+
+            itemDtoWithComments.setNextBooking(nextBookingDto);
+            itemDtoWithComments.setLastBooking(lastBookingDto);
         }
-        return commentItemDto;
+        return itemDtoWithComments;
     }
 
     @Override
@@ -124,8 +141,9 @@ public class ItemServiceImpl implements ItemService {
     @Override
     public ResponseCommentDto createComment(long userId, long itemId, RequestCommentDto requestCommentDto) {
         if (!bookingRepository.existsByBookerIdAndItemIdAndEndBefore(userId, itemId, LocalDateTime.now())) {
-            throw new ValidationException("");
+            throw new PermissionException("Access denied");
         }
+
         Item item = itemRepository.findById(itemId)
             .orElseThrow(() -> new NotFoundException(String.format("Item ID=%s not found", itemId)));
         User user = userRepository.findById(userId)
@@ -133,23 +151,5 @@ public class ItemServiceImpl implements ItemService {
         Comment comment = ItemMapper.mapToComment(requestCommentDto, user, item);
         commentRepository.save(comment);
         return ItemMapper.mapToCommentDto(comment);
-    }
-
-    void addLastAndNextBookings(Booking booking, Map<Long, CommentItemDto> itemDtoMap) {
-        long itemId = booking.getItem().getId();
-        itemDtoMap.get(itemId).setLastBooking(getLastBooking(booking, itemDtoMap.get(itemId)));
-        itemDtoMap.get(itemId).setNextBooking(getNextBooking(booking, itemDtoMap.get(itemId)));
-    }
-
-    LocalDateTime getNextBooking(Booking booking, CommentItemDto ownerCommentItemDto) {
-        return Stream.of(ownerCommentItemDto.getNextBooking(), booking.getStart())
-            .filter(Objects::nonNull).filter(localDateTime -> localDateTime.isAfter(LocalDateTime.now()))
-            .min(LocalDateTime::compareTo).orElse(null);
-    }
-
-    LocalDateTime getLastBooking(Booking booking, CommentItemDto ownerCommentItemDto) {
-        return Stream.of(ownerCommentItemDto.getLastBooking(), booking.getEnd())
-            .filter(Objects::nonNull).filter(localDateTime -> localDateTime.isBefore(LocalDateTime.now()))
-            .max(LocalDateTime::compareTo).orElse(null);
     }
 }

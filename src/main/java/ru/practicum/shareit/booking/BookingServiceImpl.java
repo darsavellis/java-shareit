@@ -107,6 +107,10 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     public List<ResponseBookingDto> getBookingByOwner(long userId, BookingState state) {
+        if (!userRepository.existsById(userId)) {
+            throw new NotFoundException(String.format("User ID=%s does not exists", userId));
+        }
+
         final Sort sort = Sort.by(Sort.Direction.ASC, "start");
         final LocalDateTime now = LocalDateTime.now();
 
@@ -118,10 +122,6 @@ public class BookingServiceImpl implements BookingService {
             case CURRENT -> bookingRepository.findAllByItemOwnerAndStatus(userId, APPROVED, sort);
             case REJECTED -> bookingRepository.findAllByItemOwnerAndStatus(userId, REJECTED, sort);
         };
-
-        if (bookings.isEmpty()) {
-            throw new NotFoundException("Bookings not found");
-        }
 
         return bookings.stream().map(BookingMapper::mapToResponseBookingDto).toList();
     }
