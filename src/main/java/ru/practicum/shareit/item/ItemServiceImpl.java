@@ -9,6 +9,7 @@ import ru.practicum.shareit.booking.dto.ResponseBookingDto;
 import ru.practicum.shareit.booking.mappers.BookingMapper;
 import ru.practicum.shareit.exceptions.NotFoundException;
 import ru.practicum.shareit.exceptions.PermissionException;
+import ru.practicum.shareit.exceptions.ValidationException;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.dto.ItemDtoWithComments;
 import ru.practicum.shareit.item.dto.RequestCommentDto;
@@ -141,7 +142,7 @@ public class ItemServiceImpl implements ItemService {
     @Override
     public ResponseCommentDto createComment(long userId, long itemId, RequestCommentDto requestCommentDto) {
         if (!bookingRepository.existsByBookerIdAndItemIdAndEndBefore(userId, itemId, LocalDateTime.now())) {
-            throw new PermissionException("Access denied");
+            throw new ValidationException("Access denied");
         }
 
         Item item = itemRepository.findById(itemId)
