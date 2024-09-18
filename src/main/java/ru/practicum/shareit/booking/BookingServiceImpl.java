@@ -14,7 +14,6 @@ import ru.practicum.shareit.booking.model.BookingStatus;
 import ru.practicum.shareit.exceptions.NotAvailableException;
 import ru.practicum.shareit.exceptions.NotFoundException;
 import ru.practicum.shareit.exceptions.PermissionException;
-import ru.practicum.shareit.exceptions.ValidationException;
 import ru.practicum.shareit.item.ItemRepository;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.user.UserRepository;
@@ -35,10 +34,6 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     public ResponseBookingDto createBooking(long userId, RequestBookingDto requestBookingDto) {
-        if (!requestBookingDto.getStart().isBefore(requestBookingDto.getEnd())) {
-            throw new ValidationException("Start time must be after end time");
-        }
-
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new NotFoundException(String.format("User ID=%s not found", userId)));
 

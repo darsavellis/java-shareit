@@ -22,7 +22,6 @@ import ru.practicum.shareit.user.model.User;
 
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -43,7 +42,7 @@ public class ItemServiceImpl implements ItemService {
             .stream().map(BookingMapper::mapToResponseBookingDto)
             .collect(Collectors.groupingBy(responseBookingDto -> responseBookingDto.getItem().getId()));
 
-        Map<Long, ItemDtoWithComments> itemsByOwner = itemRepository.findByOwnerId(userId).stream()
+        return itemRepository.findByOwnerId(userId).stream()
             .map(item -> {
                 ItemDtoWithComments itemDtoWithComments = ItemMapper.mapToItemDtoWithComments(item);
                 itemDtoWithComments.setComments(commentDtoMap.get(item.getId()));
@@ -57,9 +56,7 @@ public class ItemServiceImpl implements ItemService {
                 itemDtoWithComments.setLastBooking(lastBookingDto);
 
                 return itemDtoWithComments;
-            }).collect(Collectors.toMap(ItemDtoWithComments::getId, Function.identity()));
-
-        return itemsByOwner.values().stream().toList();
+            }).toList();
     }
 
     @Override

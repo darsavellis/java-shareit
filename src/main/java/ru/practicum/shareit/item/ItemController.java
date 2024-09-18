@@ -17,26 +17,26 @@ import java.util.List;
 @RequestMapping("/items")
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class ItemController {
-    static final String userIdHeader = "X-Sharer-User-Id";
+    static final String USER_ID_HEADER = "X-Sharer-User-Id";
     final ItemService itemService;
 
     @GetMapping
-    public List<ItemDtoWithComments> getItems(@RequestHeader(userIdHeader) long userId) {
+    public List<ItemDtoWithComments> getItems(@RequestHeader(USER_ID_HEADER) long userId) {
         return itemService.getItems(userId);
     }
 
     @GetMapping("/{itemId}")
-    public ItemDtoWithComments getItemById(@RequestHeader(userIdHeader) long userId, @PathVariable long itemId) {
+    public ItemDtoWithComments getItemById(@RequestHeader(USER_ID_HEADER) long userId, @PathVariable long itemId) {
         return itemService.getItemById(userId, itemId);
     }
 
     @PostMapping
-    public ItemDto createItem(@RequestHeader(userIdHeader) long userId, @Validated @RequestBody ItemDto itemDto) {
+    public ItemDto createItem(@RequestHeader(USER_ID_HEADER) long userId, @Validated @RequestBody ItemDto itemDto) {
         return itemService.createItem(userId, itemDto);
     }
 
     @PatchMapping("/{itemId}")
-    public ItemDto updateItem(@PathVariable long itemId, @RequestHeader(userIdHeader) long userId,
+    public ItemDto updateItem(@PathVariable long itemId, @RequestHeader(USER_ID_HEADER) long userId,
                               @RequestBody ItemDto itemDto) {
         return itemService.updateItem(itemId, userId, itemDto);
     }
@@ -52,7 +52,7 @@ public class ItemController {
     }
 
     @PostMapping("/{itemId}/comment")
-    public ResponseCommentDto createComment(@RequestHeader(userIdHeader) long userId, @PathVariable long itemId,
+    public ResponseCommentDto createComment(@RequestHeader(USER_ID_HEADER) long userId, @PathVariable long itemId,
                                             @Validated @RequestBody RequestCommentDto requestCommentDto) {
         return itemService.createComment(userId, itemId, requestCommentDto);
     }
