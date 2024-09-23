@@ -31,14 +31,12 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserDto createUser(UserDto userDto) {
-        User user = UserMapper.mapToUser(userDto);
-
-        return UserMapper.mapToUserDto(userRepository.save(user));
+        User user = userRepository.save(UserMapper.mapToUser(userDto));
+        return UserMapper.mapToUserDto(user);
     }
 
     @Override
     public UserDto updateUser(UserDto userDto) {
-        userRepository.update(UserMapper.mapToUser(userDto));
         final User oldUser = userRepository.findById(userDto.getId())
             .orElseThrow(() -> new NotFoundException(String.format("User ID=%s not found", userDto.getId())));
         final String name = userDto.getName();
@@ -51,11 +49,13 @@ public class UserServiceImpl implements UserService {
             oldUser.setEmail(email);
         }
 
-        return UserMapper.mapToUserDto(oldUser);
+        return UserMapper.mapToUserDto(userRepository.save(oldUser));
     }
 
     @Override
     public UserDto deleteUser(long id) {
-        return UserMapper.mapToUserDto(userRepository.delete(id));
+        User user = userRepository.findById(id).orElseThrow(() -> new NotFoundException(""));
+        userRepository.delete(user);
+        return UserMapper.mapToUserDto(user);
     }
 }
