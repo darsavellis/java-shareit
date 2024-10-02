@@ -160,7 +160,6 @@ class ItemControllerTest {
         RequestCommentDto requestCommentDto = RequestCommentDto.builder()
             .text("Good thing")
             .build();
-
         ResponseCommentDto responseCommentDto = ResponseCommentDto.builder()
             .id(1L)
             .text(requestCommentDto.getText())

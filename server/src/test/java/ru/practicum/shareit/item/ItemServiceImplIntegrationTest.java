@@ -2,32 +2,25 @@ package ru.practicum.shareit.item;
 
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
-import lombok.SneakyThrows;
 import lombok.experimental.FieldDefaults;
+import org.assertj.core.api.AssertionsForClassTypes;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.transaction.annotation.Transactional;
-import ru.practicum.shareit.booking.BookingService;
-import ru.practicum.shareit.booking.dto.RequestBookingDto;
 import ru.practicum.shareit.exceptions.PermissionException;
-import ru.practicum.shareit.exceptions.ValidationException;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.dto.ItemDtoWithComments;
 import ru.practicum.shareit.item.dto.RequestCommentDto;
 import ru.practicum.shareit.item.dto.ResponseCommentDto;
-import ru.practicum.shareit.request.ItemRequestService;
-import ru.practicum.shareit.request.dto.ItemRequestDto;
 import ru.practicum.shareit.user.UserService;
 import ru.practicum.shareit.user.dto.UserDto;
 
-import java.time.LocalDateTime;
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @Transactional
@@ -37,195 +30,132 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 class ItemServiceImplIntegrationTest {
     final ItemService itemService;
     final UserService userService;
-    final BookingService bookingService;
-    final ItemRequestService itemRequestService;
 
-    UserDto userDto;
-    UserDto newUserDto;
-    ItemDto itemDto;
+    UserDto firstUserDto;
+    UserDto secondUserDto;
+    ItemDto firstItemDto;
     ItemDto newItemDto;
-    RequestBookingDto requestBookingDto;
+    ItemDto secondItemDto;
     RequestCommentDto requestCommentDto;
-    ItemRequestDto itemRequestDto;
+    ItemDtoWithComments firstItemDtoWithComments;
 
     @BeforeEach
     void setUp() {
-        userDto = UserDto.builder()
-            .name("Aleksandr")
-            .email("aleksandrov@email.com")
-            .build();
-
-        newUserDto = UserDto.builder()
-            .name("Sergey")
-            .email("sergeev@email.com")
-            .build();
-
-        itemDto = ItemDto.builder()
-            .name("ItemDto name")
-            .description("ItemDto description")
-            .available(true)
-            .requestId(null)
-            .build();
-
-        newItemDto = ItemDto.builder()
-            .name("New itemDto name")
-            .description("New itemDto description")
-            .available(true)
-            .requestId(null)
-            .build();
-
-        requestBookingDto = RequestBookingDto.builder()
-            .itemId(itemDto.getId())
-            .start(LocalDateTime.now().minusDays(5))
-            .end(LocalDateTime.now().minusDays(3))
-            .build();
+        firstUserDto = userService.getUserById(1L);
+        secondUserDto = userService.getUserById(2L);
+        firstItemDtoWithComments = itemService.getItemById(firstUserDto.getId(), 1);
+        ItemDtoWithComments secondItemDtoWithComments = itemService.getItemById(secondUserDto.getId(), 2);
+        firstItemDto = mapToItemDto(firstItemDtoWithComments);
+        secondItemDto = mapToItemDto(secondItemDtoWithComments);
 
         requestCommentDto = RequestCommentDto.builder()
             .text("Good review")
             .build();
 
-        itemRequestDto = ItemRequestDto.builder()
-            .requestor(userDto)
-            .description("First itemDto")
-            .items(new ArrayList<>())
+        newItemDto = ItemDto.builder()
+            .id(3)
+            .name("New Item")
+            .description("New Item description")
+            .available(true)
+            .requestId(1L)
             .build();
     }
 
     @Test
     void getItems() {
-        userDto = userService.createUser(userDto);
-        itemDto = itemService.createItem(userDto.getId(), itemDto);
-        List<ItemDtoWithComments> itemDtos = itemService.getItems(userDto.getId());
+        List<ItemDtoWithComments> itemDtos = List.of(firstItemDtoWithComments);
+        List<ItemDtoWithComments> actualItemDtos = itemService.getItems(firstUserDto.getId());
 
-        assertThat(itemDtos, hasItem(allOf(
-            hasProperty("id", equalTo(itemDto.getId())),
-            hasProperty("name", equalTo(itemDto.getName())),
-            hasProperty("description", equalTo(itemDto.getDescription())),
-            hasProperty("available", equalTo(itemDto.getAvailable())),
-            hasProperty("requestId", nullValue())
-        )));
+        AssertionsForClassTypes.assertThat(itemDtos).usingRecursiveComparison().isEqualTo(actualItemDtos);
     }
 
     @Test
+    @DirtiesContext(methodMode = DirtiesContext.MethodMode.AFTER_METHOD)
     void createItem_whenUserExistAndRequestIdIsNull_thenItemDtoWithoutItemRequestReturned() {
-        userDto = userService.createUser(userDto);
-        ItemDto actualItemDto = itemService.createItem(userDto.getId(), itemDto);
+        newItemDto.setRequestId(null);
+        ItemDto actualItemDto = itemService.createItem(firstUserDto.getId(), newItemDto);
 
-        assertThat(actualItemDto.getId(), notNullValue());
-        assertThat(actualItemDto.getName(), equalTo(itemDto.getName()));
-        assertThat(actualItemDto.getDescription(), equalTo(itemDto.getDescription()));
-        assertThat(actualItemDto.getAvailable(), equalTo(itemDto.getAvailable()));
-        assertThat(actualItemDto.getRequestId(), nullValue());
+        AssertionsForClassTypes.assertThat(newItemDto).usingRecursiveComparison().isEqualTo(actualItemDto);
+
     }
 
     @Test
     void getItemById_whenItemExist_thenItemReturned() {
-        userDto = userService.createUser(userDto);
-        itemDto = itemService.createItem(userDto.getId(), itemDto);
+        ItemDtoWithComments actualItemDto = itemService.getItemById(firstUserDto.getId(), firstItemDto.getId());
 
-        ItemDtoWithComments actualItemDto = itemService.getItemById(userDto.getId(), itemDto.getId());
-
-        assertThat(actualItemDto.getId(), notNullValue());
-        assertThat(actualItemDto.getName(), equalTo(itemDto.getName()));
-        assertThat(actualItemDto.getDescription(), equalTo(itemDto.getDescription()));
-        assertThat(actualItemDto.getAvailable(), equalTo(itemDto.getAvailable()));
-        assertThat(actualItemDto.getRequestId(), nullValue());
-        assertThat(actualItemDto.getLastBooking(), nullValue());
-        assertThat(actualItemDto.getNextBooking(), nullValue());
+        AssertionsForClassTypes.assertThat(firstItemDtoWithComments).usingRecursiveComparison().isEqualTo(actualItemDto);
     }
 
     @Test
+    @DirtiesContext(methodMode = DirtiesContext.MethodMode.AFTER_METHOD)
     void updateItem_whenItemWithoutOrWithExistsRequestId_thenItemUpdated() {
-        userDto = userService.createUser(userDto);
-        long userId = userDto.getId();
-        itemRequestDto = itemRequestService.createItemRequest(userDto.getId(), itemRequestDto);
-        long itemRequestId = itemRequestDto.getId();
-        itemDto.setRequestId(itemRequestId);
-        itemDto = itemService.createItem(userId, itemDto);
-        newItemDto.setRequestId(itemRequestId);
-        long itemId = itemDto.getId();
+        firstItemDto.setName("Updated name");
+        firstItemDto.setDescription("Updated description");
+        ItemDto updatedItemDto = itemService.updateItem(firstItemDto.getId(), firstUserDto.getId(), firstItemDto);
 
-        ItemDto updatedItemDto = itemService.updateItem(itemId, userId, newItemDto);
-
-        assertThat(updatedItemDto.getId(), notNullValue());
-        assertThat(updatedItemDto.getName(), equalTo(newItemDto.getName()));
-        assertThat(updatedItemDto.getDescription(), equalTo(newItemDto.getDescription()));
-        assertThat(updatedItemDto.getAvailable(), equalTo(newItemDto.getAvailable()));
+        AssertionsForClassTypes.assertThat(firstItemDto).usingRecursiveComparison().isEqualTo(updatedItemDto);
     }
 
     @Test
     void updateItem_whenUserHaveNoPermissions_thenThrowsException() {
-        userDto = userService.createUser(userDto);
-        newUserDto = userService.createUser(newUserDto);
-        long userId = userDto.getId();
-        itemDto = itemService.createItem(userId, itemDto);
-        long itemId = itemDto.getId();
-        assertThrows(PermissionException.class, () -> itemService.updateItem(itemId, newUserDto.getId(), newItemDto));
+        secondItemDto.setName("Updated name");
+        secondItemDto.setDescription("Updated description");
+
+        assertThrows(PermissionException.class, () -> {
+            itemService.updateItem(firstUserDto.getId(), secondUserDto.getId(), secondItemDto);
+        });
     }
 
     @Test
+    @DirtiesContext(methodMode = DirtiesContext.MethodMode.AFTER_METHOD)
     void deleteItem_whenItemExist_thenItemDeleted() {
-        userDto = userService.createUser(userDto);
-        itemDto = itemService.createItem(userDto.getId(), itemDto);
+        ItemDto deletedItemDto = itemService.deleteItem(firstItemDto.getId());
 
-        long itemId = itemDto.getId();
-
-        ItemDto deletedItemDto = itemService.deleteItem(itemId);
-
-        assertThat(deletedItemDto.getId(), notNullValue());
-        assertThat(deletedItemDto.getName(), equalTo(itemDto.getName()));
-        assertThat(deletedItemDto.getDescription(), equalTo(itemDto.getDescription()));
-        assertThat(deletedItemDto.getAvailable(), equalTo(itemDto.getAvailable()));
+        AssertionsForClassTypes.assertThat(firstItemDto).usingRecursiveComparison().isEqualTo(deletedItemDto);
     }
 
     @Test
-    void searchItems_whenTextIsValid_thenItemListReturnedOrEmptyList() {
-        userDto = userService.createUser(userDto);
-        itemDto = itemService.createItem(userDto.getId(), itemDto);
-        newItemDto = itemService.createItem(userDto.getId(), newItemDto);
+    void searchItems_whenTextIsValid_thenItemListReturned() {
+        List<ItemDto> expectedItemDtos = List.of(secondItemDto);
 
-        List<ItemDto> resultItemDtos = itemService.searchItems("New");
+        List<ItemDto> actualItemDtos = itemService.searchItems("Not");
 
-        assertThat(resultItemDtos, hasSize(1));
-        assertThat(resultItemDtos, hasItem(allOf(
-            hasProperty("id", notNullValue()),
-            hasProperty("name", equalTo(newItemDto.getName())),
-            hasProperty("description", equalTo(newItemDto.getDescription())),
-            hasProperty("available", equalTo(newItemDto.getAvailable()))
-        )));
+        AssertionsForClassTypes.assertThat(expectedItemDtos).usingRecursiveComparison().isEqualTo(actualItemDtos);
     }
 
     @Test
+    void searchItems_whenTextIsEmpty_thenEmptyListReturned() {
+        List<ItemDto> expectedItemDtos = Collections.emptyList();
+
+        List<ItemDto> actualItemDtos = itemService.searchItems("");
+
+        AssertionsForClassTypes.assertThat(expectedItemDtos).usingRecursiveComparison().isEqualTo(actualItemDtos);
+    }
+
+    @Test
+    @DirtiesContext(methodMode = DirtiesContext.MethodMode.AFTER_METHOD)
     void createComment_whenBookerExistAndBookedItemInPast_thenCommentReturned() {
-        userDto = userService.createUser(userDto);
-        long userId = userDto.getId();
-        itemDto = itemService.createItem(userId, itemDto);
-        long itemId = itemDto.getId();
+        ResponseCommentDto responseCommentDto =
+            itemService.createComment(firstUserDto.getId(), secondItemDto.getId(), requestCommentDto);
 
-        itemService.getItemById(userId, itemId);
+        AssertionsForClassTypes.assertThat(requestCommentDto).usingRecursiveComparison().isEqualTo(responseCommentDto);
 
-        requestBookingDto.setItemId(itemId);
-        bookingService.createBooking(userId, requestBookingDto);
-        ResponseCommentDto responseCommentDto = itemService.createComment(userId, itemId, requestCommentDto);
-
-        assertThat(responseCommentDto.getId(), notNullValue());
-        assertThat(responseCommentDto.getText(), equalTo(requestCommentDto.getText()));
-        assertThat(responseCommentDto.getAuthorName(), equalTo(userDto.getName()));
     }
 
     @Test
-    @SneakyThrows
-    void createComment_whenBookingDateNotInPast_thenThrowsValidationException() {
-        userDto = userService.createUser(userDto);
-        long userId = userDto.getId();
-        itemDto = itemService.createItem(userId, itemDto);
-        long itemId = itemDto.getId();
+    void createComment_whenBookingDateNotInPast_thenThrowsPermissionException() {
+        assertThrows(PermissionException.class, () -> {
+            itemService.createComment(secondUserDto.getId(), firstUserDto.getId(), requestCommentDto);
+        });
+    }
 
-        itemService.getItemById(userId, itemId);
-        requestBookingDto.setEnd(LocalDateTime.now().plusDays(30));
-        requestBookingDto.setItemId(itemId);
-        bookingService.createBooking(userId, requestBookingDto);
-
-        assertThrows(ValidationException.class, () -> itemService.createComment(userId, itemId, requestCommentDto));
+    ItemDto mapToItemDto(ItemDtoWithComments itemDtoWithComments) {
+        return ItemDto.builder()
+            .id(itemDtoWithComments.getId())
+            .name(itemDtoWithComments.getName())
+            .description(itemDtoWithComments.getDescription())
+            .available(itemDtoWithComments.getAvailable())
+            .requestId(itemDtoWithComments.getRequestId())
+            .build();
     }
 }

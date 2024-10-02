@@ -13,6 +13,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import ru.practicum.shareit.request.dto.ItemRequestDto;
+import ru.practicum.shareit.request.dto.ItemRequestInfoDto;
 import ru.practicum.shareit.user.dto.UserDto;
 
 import java.nio.charset.StandardCharsets;
@@ -39,6 +40,7 @@ class ItemRequestControllerTest {
     final ItemRequestService itemRequestService;
     final MockMvc mvc;
     ItemRequestDto itemRequestDto;
+    ItemRequestInfoDto itemRequestInfoDto;
 
     @BeforeEach
     void setUp() {
@@ -52,7 +54,13 @@ class ItemRequestControllerTest {
             .description("ItemRequest description")
             .created(LocalDateTime.now())
             .requestor(userDto)
-            .items(Collections.emptyList())
+            .build();
+
+        itemRequestInfoDto = ItemRequestInfoDto.builder()
+            .description("ItemRequest description")
+            .created(LocalDateTime.now())
+            .requestor(userDto)
+            .items(null)
             .build();
     }
 
@@ -86,7 +94,7 @@ class ItemRequestControllerTest {
     @Test
     @SneakyThrows
     void getItemRequestsByOwner() {
-        List<ItemRequestDto> itemRequestDtos = List.of(itemRequestDto);
+        List<ItemRequestInfoDto> itemRequestDtos = List.of(itemRequestInfoDto);
         when(itemRequestService.getItemRequestsByOwner(anyLong())).thenReturn(itemRequestDtos);
 
         String response = mvc.perform(get("/requests").header("X-Sharer-User-Id", 1L))
@@ -102,7 +110,7 @@ class ItemRequestControllerTest {
     @SneakyThrows
     void getItemRequestById() {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSS");
-        when(itemRequestService.getItemRequestById(anyLong())).thenReturn(itemRequestDto);
+        when(itemRequestService.getItemRequestById(anyLong())).thenReturn(itemRequestInfoDto);
 
         mvc.perform(get("/requests/" + itemRequestDto.getId()))
             .andExpect(jsonPath("$.id", is(itemRequestDto.getId()), Long.class))

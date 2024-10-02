@@ -25,13 +25,11 @@ class ResponseBookingDtoTest {
     @SneakyThrows
     void testResponseBookingDto() {
         DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'hh:mm:ss");
-
         UserDto userDto = UserDto.builder()
             .id(1L)
             .name("Aleksandr")
             .email("aleksandrov@email.com")
             .build();
-
         ItemDto itemDto = ItemDto.builder()
             .id(1L)
             .name("ItemDto name")
@@ -39,7 +37,6 @@ class ResponseBookingDtoTest {
             .available(true)
             .requestId(userDto.getId())
             .build();
-
         ResponseBookingDto responseBookingDto = ResponseBookingDto.builder()
             .id(1L)
             .item(itemDto)

@@ -5,6 +5,7 @@ import jakarta.persistence.TypedQuery;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -14,10 +15,8 @@ import ru.practicum.shareit.user.dto.UserDto;
 import ru.practicum.shareit.user.model.User;
 
 import java.util.List;
-import java.util.Optional;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @Transactional
@@ -28,148 +27,84 @@ class UserServiceImplIntegrationTest {
     final UserService userService;
     final EntityManager entityManager;
 
+    UserDto firstUser;
+    UserDto secondUser;
+
+    @BeforeEach
+    void setUp() {
+        firstUser = userService.getUserById(1);
+        secondUser = userService.getUserById(2);
+    }
+
     @Test
     void getUsers_thenUserListReturned() {
-        UserDto firstUser = UserDto.builder()
-            .name("Aleksandr")
-            .email("aleksandrov@email.com")
-            .build();
-
-        UserDto secondUser = UserDto.builder()
-            .name("Sergey")
-            .email("sergeev@email.com")
-            .build();
-
-        firstUser = userService.createUser(firstUser);
-        secondUser = userService.createUser(secondUser);
-
         List<UserDto> userDtos = List.of(firstUser, secondUser);
 
         List<UserDto> actualUserDtos = userService.getUsers();
 
-        for (UserDto userDto : userDtos) {
-            assertThat(actualUserDtos, hasItem(allOf(
-                hasProperty("id", notNullValue()),
-                hasProperty("name", equalTo(userDto.getName())),
-                hasProperty("email", equalTo(userDto.getEmail()))
-            )));
-        }
+        assertThat(userDtos).usingRecursiveComparison().isEqualTo(actualUserDtos);
     }
 
     @Test
     void getUserById_whenUserIsExist_thenUserReturned() {
-        UserDto user = UserDto.builder()
-            .name("Aleksandr")
-            .email("aleksandrov@email.com")
-            .build();
+        UserDto actualUserDto = userService.getUserById(firstUser.getId());
 
-        user = userService.createUser(user);
-
-        UserDto actualUserDto = userService.getUserById(user.getId());
-
-        assertThat(actualUserDto.getId(), equalTo(user.getId()));
-        assertThat(actualUserDto.getName(), equalTo(user.getName()));
-        assertThat(actualUserDto.getEmail(), equalTo(user.getEmail()));
+        assertThat(firstUser).usingRecursiveComparison().isEqualTo(actualUserDto);
     }
 
     @Test
     void createUser_whenUserIsValid_thenUserSaved() {
-        UserDto userDto = UserDto.builder()
-            .name("Aleksandr")
-            .email("aleksandrov@email.com")
-            .build();
-
-        userDto = userService.createUser(userDto);
-
         TypedQuery<User> query = entityManager.createQuery("select u from User u where u.id = :id", User.class);
-        query.setParameter("id", userDto.getId());
+        query.setParameter("id", firstUser.getId());
         User actualUserInDatabase = query.getSingleResult();
 
-        assertThat(actualUserInDatabase.getId(), equalTo(userDto.getId()));
-        assertThat(actualUserInDatabase.getName(), equalTo(userDto.getName()));
-        assertThat(actualUserInDatabase.getEmail(), equalTo(userDto.getEmail()));
+        assertThat(firstUser).usingRecursiveComparison().isEqualTo(actualUserInDatabase);
     }
 
     @Test
     void updateUser_whenUserIsExist_thenUserUpdated() {
-        UserDto oldUser = UserDto.builder()
-            .name("Aleksandr")
-            .email("aleksandrov@email.com")
-            .build();
-
         UserDto newUser = UserDto.builder()
-            .name("Sergey")
-            .email("sergeev@email.com")
+            .id(firstUser.getId())
+            .name("Updated user")
+            .email("updated@email.com")
             .build();
 
-        oldUser = userService.createUser(oldUser);
-        newUser.setId(oldUser.getId());
+        UserDto actualUserDto = userService.updateUser(newUser);
 
-        UserDto updatedUserDto = userService.updateUser(newUser);
-
-        assertThat(updatedUserDto.getId(), equalTo(newUser.getId()));
-        assertThat(updatedUserDto.getName(), equalTo(newUser.getName()));
-        assertThat(updatedUserDto.getEmail(), equalTo(newUser.getEmail()));
+        assertThat(newUser).usingRecursiveComparison().isEqualTo(actualUserDto);
     }
 
     @Test
     void updateUser_whenUserNameAndEmailIsEmpty_thenUserNameAndEmailNotUpdated() {
-        UserDto oldUser = UserDto.builder()
-            .name("Aleksandr")
-            .email("aleksandrov@email.com")
-            .build();
-
         UserDto newUser = UserDto.builder()
+            .id(firstUser.getId())
             .name("")
             .email("")
             .build();
 
-        oldUser = userService.createUser(oldUser);
-        newUser.setId(oldUser.getId());
+        UserDto actualUserDto = userService.updateUser(newUser);
 
-        UserDto updatedUserDto = userService.updateUser(newUser);
+        assertThat(firstUser).usingRecursiveComparison().isEqualTo(actualUserDto);
 
-        assertThat(updatedUserDto.getId(), equalTo(newUser.getId()));
-        assertThat(updatedUserDto.getName(), equalTo(oldUser.getName()));
-        assertThat(updatedUserDto.getEmail(), equalTo(oldUser.getEmail()));
     }
 
     @Test
     void updateUser_whenUserNameAndEmailIsNull_thenUserNameAndEmailNotUpdated() {
-        UserDto oldUser = UserDto.builder()
-            .name("Aleksandr")
-            .email("aleksandrov@email.com")
-            .build();
-
         UserDto newUser = UserDto.builder()
+            .id(firstUser.getId())
             .name(null)
             .email(null)
             .build();
 
-        oldUser = userService.createUser(oldUser);
-        newUser.setId(oldUser.getId());
+        UserDto actualUserDto = userService.updateUser(newUser);
 
-        UserDto updatedUserDto = userService.updateUser(newUser);
-
-        assertThat(updatedUserDto.getId(), equalTo(newUser.getId()));
-        assertThat(updatedUserDto.getName(), equalTo(oldUser.getName()));
-        assertThat(updatedUserDto.getEmail(), equalTo(oldUser.getEmail()));
+        assertThat(firstUser).usingRecursiveComparison().isEqualTo(actualUserDto);
     }
 
     @Test
     void deleteUser_whenUserIsExist_thenUserDeleted() {
-        UserDto user = UserDto.builder()
-            .name("Aleksandr")
-            .email("aleksandrov@email.com")
-            .build();
+        userService.deleteUser(firstUser.getId());
 
-        user = userService.createUser(user);
-        UserDto userInDatabase = userService.getUserById(user.getId());
-        assertThat(userInDatabase, not(Optional.empty()));
-
-        long userId = user.getId();
-        userService.deleteUser(user.getId());
-
-        assertThrows(NotFoundException.class, () -> userService.getUserById(userId));
+        assertThrows(NotFoundException.class, () -> userService.getUserById(firstUser.getId()));
     }
 }

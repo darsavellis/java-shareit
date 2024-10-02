@@ -6,7 +6,10 @@ import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Service;
 import ru.practicum.shareit.exceptions.NotFoundException;
 import ru.practicum.shareit.item.ItemRepository;
+import ru.practicum.shareit.item.dto.ItemDto;
+import ru.practicum.shareit.item.mappers.ItemMapper;
 import ru.practicum.shareit.request.dto.ItemRequestDto;
+import ru.practicum.shareit.request.dto.ItemRequestInfoDto;
 import ru.practicum.shareit.request.mappers.ItemRequestMapper;
 import ru.practicum.shareit.request.model.ItemRequest;
 import ru.practicum.shareit.user.UserRepository;
@@ -14,6 +17,8 @@ import ru.practicum.shareit.user.mappers.UserMapper;
 import ru.practicum.shareit.user.model.User;
 
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -35,10 +40,17 @@ public class ItemRequestServiceImpl implements ItemRequestService {
     }
 
     @Override
-    public List<ItemRequestDto> getItemRequestsByOwner(long requestorId) {
+    public List<ItemRequestInfoDto> getItemRequestsByOwner(long requestorId) {
         List<ItemRequest> itemRequests =
             itemRequestRepository.findAllByRequestorId(requestorId);
-        return itemRequests.stream().map(ItemRequestMapper::mapToItemRequestDto).toList();
+        Map<Long, List<ItemDto>> items = itemRepository.findAll().stream()
+            .map(ItemMapper::mapToItemDto)
+            .filter(itemDto -> itemDto.getRequestId() != null)
+            .collect(Collectors.groupingBy(ItemDto::getRequestId));
+        return itemRequests.stream()
+            .map(itemRequest -> {
+                return ItemRequestMapper.mapToItemRequestInfoDto(itemRequest, items.get(itemRequest.getId()));
+            }).toList();
     }
 
     @Override
@@ -47,9 +59,11 @@ public class ItemRequestServiceImpl implements ItemRequestService {
     }
 
     @Override
-    public ItemRequestDto getItemRequestById(long id) {
+    public ItemRequestInfoDto getItemRequestById(long id) {
         ItemRequest itemRequest = itemRequestRepository.findById(id)
             .orElseThrow(() -> new NotFoundException(String.format("ItemRequest with ID = %s not found", id)));
-        return ItemRequestMapper.mapToItemRequestDto(itemRequest);
+        List<ItemDto> items = itemRepository.findAllByRequestId(itemRequest.getId()).stream()
+            .map(ItemMapper::mapToItemDto).toList();
+        return ItemRequestMapper.mapToItemRequestInfoDto(itemRequest, items);
     }
 }

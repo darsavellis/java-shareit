@@ -114,7 +114,7 @@ public class BookingServiceImpl implements BookingService {
             case PAST -> bookingRepository.findAllByItemOwnerIdAndEndIsBefore(userId, now, sort);
             case FUTURE -> bookingRepository.findAllByItemOwnerIdAndStartIsAfter(userId, now, sort);
             case WAITING -> bookingRepository.findAllByItemOwnerIdAndStatus(userId, WAITING, sort);
-            case CURRENT -> bookingRepository.findAllByItemOwnerIdAndStatus(userId, APPROVED, sort);
+            case CURRENT -> bookingRepository.findAllByItemOwnerIdAndEndIsAfterAndStartIsBefore(userId, now, now, sort);
             case REJECTED -> bookingRepository.findAllByItemOwnerIdAndStatus(userId, REJECTED, sort);
         };
 

@@ -3,146 +3,131 @@ package ru.practicum.shareit.request;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.transaction.annotation.Transactional;
+import ru.practicum.shareit.item.ItemService;
+import ru.practicum.shareit.item.dto.ItemDto;
+import ru.practicum.shareit.item.dto.ItemDtoWithComments;
 import ru.practicum.shareit.request.dto.ItemRequestDto;
-import ru.practicum.shareit.request.mappers.ItemRequestMapper;
-import ru.practicum.shareit.user.UserRepository;
+import ru.practicum.shareit.request.dto.ItemRequestInfoDto;
+import ru.practicum.shareit.user.UserService;
 import ru.practicum.shareit.user.dto.UserDto;
-import ru.practicum.shareit.user.mappers.UserMapper;
 
 import java.time.LocalDateTime;
-import java.util.Collections;
 import java.util.List;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
+@Transactional
 @SpringBootTest
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @RequiredArgsConstructor(onConstructor_ = @Autowired)
 class ItemRequestServiceImplIntegrationTest {
-    final ItemRequestRepository itemRequestRepository;
-    final UserRepository userRepository;
+    final ItemService itemService;
+    final UserService userService;
     final ItemRequestService itemRequestService;
 
-    UserDto userDto;
     UserDto ownerDto;
+    UserDto userDto;
     ItemRequestDto userItemRequestDto;
     ItemRequestDto ownerItemRequestDto;
+    ItemRequestDto newUserItemRequestDto;
+    ItemRequestInfoDto userItemRequestInfoDto;
+    ItemRequestInfoDto ownerItemRequestInfoDto;
 
     @BeforeEach
     void setUp() {
-        userRepository.deleteAll();
-        itemRequestRepository.deleteAll();
+        ownerDto = userService.getUserById(1L);
+        userDto = userService.getUserById(2L);
+        ItemDtoWithComments ownerItemDtoWithComments = itemService.getItemById(ownerDto.getId(), 1);
+        ItemDtoWithComments userItemDtoWithComments = itemService.getItemById(userDto.getId(), 2);
+        ItemDto ownerItemDto = mapToItemDto(ownerItemDtoWithComments);
+        ItemDto userItemDto = mapToItemDto(userItemDtoWithComments);
 
-        userDto = UserDto.builder()
-            .name("Aleksandr")
-            .email("aleksandrov@email.com")
-            .build();
-
-        ownerDto = UserDto.builder()
-            .name("Sergey")
-            .email("sergeev@email.com")
+        ownerItemRequestDto = ItemRequestDto.builder()
+            .id(1)
+            .description("Owner ItemRequest")
+            .created(LocalDateTime.parse("2024-09-15T12:00:00"))
+            .requestor(ownerDto)
             .build();
 
         userItemRequestDto = ItemRequestDto.builder()
-            .description("User itemRequest")
-            .created(LocalDateTime.parse("2024-08-15T12:00:00"))
+            .id(2)
+            .description("User ItemRequest")
+            .created(LocalDateTime.parse("2024-09-15T12:00:00"))
             .requestor(userDto)
-            .items(Collections.emptyList())
             .build();
 
-        ownerItemRequestDto = ItemRequestDto.builder()
-            .description("Owner itemRequest")
-            .created(LocalDateTime.parse("2024-08-15T12:00:00"))
+        ownerItemRequestInfoDto = ItemRequestInfoDto.builder()
+            .id(1)
+            .description("Owner ItemRequest")
+            .created(LocalDateTime.parse("2024-09-15T12:00:00"))
             .requestor(ownerDto)
-            .items(Collections.emptyList())
+            .items(List.of(userItemDto))
             .build();
 
-        userDto = UserMapper.mapToUserDto(userRepository.save(UserMapper.mapToUser(userDto)));
-        ownerDto = UserMapper.mapToUserDto(userRepository.save(UserMapper.mapToUser(ownerDto)));
-        userItemRequestDto.setRequestor(userDto);
-        ownerItemRequestDto.setRequestor(ownerDto);
-        userItemRequestDto = ItemRequestMapper
-            .mapToItemRequestDto(itemRequestRepository.save(ItemRequestMapper.mapToItemRequest(userItemRequestDto)));
-        ownerItemRequestDto = ItemRequestMapper
-            .mapToItemRequestDto(itemRequestRepository.save(ItemRequestMapper.mapToItemRequest(ownerItemRequestDto)));
+        userItemRequestInfoDto = ItemRequestInfoDto.builder()
+            .id(2)
+            .description("User ItemRequest")
+            .created(LocalDateTime.parse("2024-09-15T12:00:00"))
+            .requestor(userDto)
+            .items(List.of(ownerItemDto))
+            .build();
+
+        newUserItemRequestDto = ItemRequestDto.builder()
+            .id(3)
+            .description("New User ItemRequest")
+            .created(LocalDateTime.parse("2024-09-15T12:00:00"))
+            .requestor(userDto)
+            .build();
     }
 
 
     @Test
+    @DirtiesContext(methodMode = DirtiesContext.MethodMode.AFTER_METHOD)
     void createItemRequest_whenUserExist_thenItemRequestSaved() {
-        ItemRequestDto actualItemRequestDto = itemRequestService
-            .createItemRequest(userItemRequestDto.getRequestor().getId(), userItemRequestDto);
+        ItemRequestDto actualUserItemRequestDto =
+            itemRequestService.createItemRequest(userDto.getId(), newUserItemRequestDto);
 
-        assertThat(actualItemRequestDto.getId(), notNullValue());
-        assertThat(actualItemRequestDto.getDescription(), equalTo(userItemRequestDto.getDescription()));
-        assertThat(actualItemRequestDto.getCreated(), equalTo(userItemRequestDto.getCreated()));
-        assertThat(actualItemRequestDto.getRequestor(), allOf(
-            hasProperty("name", equalTo(userDto.getName())),
-            hasProperty("email", equalTo(userDto.getEmail()))
-        ));
+        assertThat(newUserItemRequestDto).usingRecursiveComparison().isEqualTo(actualUserItemRequestDto);
     }
 
     @Test
     void getItemRequestsByOwner_whenOwnerHasItemRequests_thenOwnerItemRequestListReturned() {
-        List<ItemRequestDto> actualItemRequestDtos = itemRequestService.getItemRequestsByOwner(ownerDto.getId());
+        List<ItemRequestInfoDto> actualItemRequestDtos = itemRequestService.getItemRequestsByOwner(ownerDto.getId());
+        List<ItemRequestInfoDto> expectedItemRequestDtos = List.of(ownerItemRequestInfoDto);
 
-        assertThat(actualItemRequestDtos, hasSize(1));
-        assertThat(actualItemRequestDtos, hasItem(allOf(
-            hasProperty("description", equalTo(ownerItemRequestDto.getDescription())),
-            hasProperty("created", equalTo(ownerItemRequestDto.getCreated())),
-            hasProperty("requestor", allOf(
-                hasProperty("name", equalTo(ownerDto.getName())),
-                hasProperty("email", equalTo(ownerDto.getEmail()))
-            )),
-            hasProperty("items", hasSize(0))
-        )));
+        assertThat(actualItemRequestDtos).usingRecursiveComparison().isEqualTo(expectedItemRequestDtos);
     }
 
     @Test
     void getAllItemRequests_whenItemRequestExists_thenItemRequestListReturned() {
-        List<ItemRequestDto> itemRequestDtos = List.of(userItemRequestDto, ownerItemRequestDto);
+        List<ItemRequestDto> expectedItemRequestDtos = List.of(ownerItemRequestDto, userItemRequestDto);
         List<ItemRequestDto> actualItemRequestDtos = itemRequestService.getAllItemRequests();
 
-        assertThat(actualItemRequestDtos, hasSize(2));
-        for (ItemRequestDto itemRequestDto : itemRequestDtos) {
-            assertThat(actualItemRequestDtos, hasItems(allOf(
-                hasProperty("id", notNullValue()),
-                hasProperty("description", equalTo(itemRequestDto.getDescription())),
-                hasProperty("created", equalTo(itemRequestDto.getCreated())),
-                hasProperty("requestor", allOf(
-                    hasProperty("id", notNullValue()),
-                    hasProperty("name", equalTo(itemRequestDto.getRequestor().getName())),
-                    hasProperty("email", equalTo(itemRequestDto.getRequestor().getEmail()))
-                )),
-                hasProperty("items", hasSize(0))
-            )));
-        }
+        assertThat(actualItemRequestDtos).usingRecursiveComparison().isEqualTo(expectedItemRequestDtos);
+
     }
 
     @Test
     void getItemRequestById_whenItemRequestExist_thenItemRequestReturned() {
-        ItemRequestDto actualItemRequestDto = itemRequestService.getItemRequestById(userItemRequestDto.getId());
+        ItemRequestInfoDto actualItemRequestDto = itemRequestService.getItemRequestById(userItemRequestDto.getId());
 
-        assertThat(actualItemRequestDto, notNullValue());
-        assertThat(actualItemRequestDto.getId(), notNullValue());
-        assertThat(actualItemRequestDto.getDescription(), equalTo(userItemRequestDto.getDescription()));
-        assertThat(actualItemRequestDto.getCreated(), equalTo(userItemRequestDto.getCreated()));
-        assertThat(actualItemRequestDto.getRequestor(), allOf(
-            hasProperty("name", equalTo(userDto.getName())),
-            hasProperty("email", equalTo(userDto.getEmail()))
-        ));
-        assertThat(actualItemRequestDto.getItems(), hasSize(0));
+        assertThat(actualItemRequestDto).usingRecursiveComparison().isEqualTo(userItemRequestInfoDto);
+
     }
 
-    @AfterEach
-    void postSetUp() {
-        userRepository.deleteAll();
-        itemRequestRepository.deleteAll();
+    ItemDto mapToItemDto(ItemDtoWithComments itemDtoWithComments) {
+        return ItemDto.builder()
+            .id(itemDtoWithComments.getId())
+            .name(itemDtoWithComments.getName())
+            .description(itemDtoWithComments.getDescription())
+            .available(itemDtoWithComments.getAvailable())
+            .requestId(itemDtoWithComments.getRequestId())
+            .build();
     }
 }
