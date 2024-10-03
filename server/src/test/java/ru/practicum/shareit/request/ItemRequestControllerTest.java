@@ -84,9 +84,10 @@ class ItemRequestControllerTest {
     @Test
     @SneakyThrows
     void getAllItemRequests() {
-        when(itemRequestService.getAllItemRequests()).thenReturn(Collections.emptyList());
+        when(itemRequestService.getAllItemRequests(1L)).thenReturn(Collections.emptyList());
 
-        mvc.perform(get("/requests/all"))
+        mvc.perform(get("/requests/all")
+                .header("X-Sharer-User-Id", 1L))
             .andExpect(status().isOk())
             .andExpect(content().json(Collections.emptyList().toString()));
     }

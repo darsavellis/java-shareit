@@ -43,10 +43,11 @@ public class ItemRequestServiceImpl implements ItemRequestService {
     public List<ItemRequestInfoDto> getItemRequestsByOwner(long requestorId) {
         List<ItemRequest> itemRequests =
             itemRequestRepository.findAllByRequestorId(requestorId);
-        Map<Long, List<ItemDto>> items = itemRepository.findAll().stream()
+        Map<Long, List<ItemDto>> items = itemRepository.findAllByRequestRequestorIdIn(List.of(requestorId)).stream()
             .map(ItemMapper::mapToItemDto)
             .filter(itemDto -> itemDto.getRequestId() != null)
             .collect(Collectors.groupingBy(ItemDto::getRequestId));
+
         return itemRequests.stream()
             .map(itemRequest -> {
                 return ItemRequestMapper.mapToItemRequestInfoDto(itemRequest, items.get(itemRequest.getId()));
@@ -54,8 +55,17 @@ public class ItemRequestServiceImpl implements ItemRequestService {
     }
 
     @Override
-    public List<ItemRequestDto> getAllItemRequests() {
-        return itemRequestRepository.findAll().stream().map(ItemRequestMapper::mapToItemRequestDto).toList();
+    public List<ItemRequestInfoDto> getAllItemRequests(long userId) {
+        List<ItemRequest> itemRequests =
+            itemRequestRepository.findAllByRequestorIdNot(userId);
+        Map<Long, List<ItemDto>> items = itemRepository.findAllByRequestRequestorIdNotIn(List.of(userId)).stream()
+            .map(ItemMapper::mapToItemDto)
+            .filter(itemDto -> itemDto.getRequestId() != null)
+            .collect(Collectors.groupingBy(ItemDto::getRequestId));
+
+        return itemRequestRepository.findAllByRequestorIdNot(userId).stream().map(itemRequest -> {
+            return ItemRequestMapper.mapToItemRequestInfoDto(itemRequest, items.get(itemRequest.getId()));
+        }).toList();
     }
 
     @Override
@@ -64,6 +74,7 @@ public class ItemRequestServiceImpl implements ItemRequestService {
             .orElseThrow(() -> new NotFoundException(String.format("ItemRequest with ID = %s not found", id)));
         List<ItemDto> items = itemRepository.findAllByRequestId(itemRequest.getId()).stream()
             .map(ItemMapper::mapToItemDto).toList();
+
         return ItemRequestMapper.mapToItemRequestInfoDto(itemRequest, items);
     }
 }

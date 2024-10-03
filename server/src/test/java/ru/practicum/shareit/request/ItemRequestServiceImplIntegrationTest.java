@@ -106,8 +106,9 @@ class ItemRequestServiceImplIntegrationTest {
 
     @Test
     void getAllItemRequests_whenItemRequestExists_thenItemRequestListReturned() {
-        List<ItemRequestDto> expectedItemRequestDtos = List.of(ownerItemRequestDto, userItemRequestDto);
-        List<ItemRequestDto> actualItemRequestDtos = itemRequestService.getAllItemRequests();
+        List<ItemRequestInfoDto> expectedItemRequestDtos = List.of(ownerItemRequestInfoDto);
+
+        List<ItemRequestInfoDto> actualItemRequestDtos = itemRequestService.getAllItemRequests(2L);
 
         assertThat(actualItemRequestDtos).usingRecursiveComparison().isEqualTo(expectedItemRequestDtos);
 
